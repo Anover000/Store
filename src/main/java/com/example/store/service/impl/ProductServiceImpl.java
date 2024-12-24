@@ -11,7 +11,6 @@ import com.example.store.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -28,9 +27,7 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final ModelMapper modelMapper;
-
-    @Autowired
-    ProductFilterService productFilterService;
+    private final ProductFilterService productFilterService;
 
     @Override
     public List<ProductResponseDTO> getAllProducts() {
