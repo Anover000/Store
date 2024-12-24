@@ -20,3 +20,41 @@ spring:
   jackson:
     deserialization:
       fail-on-unknown-properties: true
+
+  cache:
+    type: redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+# sudo systemctl start redis in wsl
+# had option of non-supported version or wsl or docker
+# sudo nano /etc/redis/redis.conf -> 0.0.0.0
+# redis-cli ping
+# redis-cli  - monitor, keys *
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    tags:
+      application: store
+    enable:
+      cache: true
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.boot.autoconfigure: ERROR
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.cache: DEBUG
+    org.springframework.data.redis.cache: DEBUG
+
+server:
+  error:
+    include-message: always
+    include-stacktrace: always

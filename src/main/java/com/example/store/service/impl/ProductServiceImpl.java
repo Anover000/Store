@@ -11,6 +11,11 @@ import com.example.store.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,6 +29,9 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final ModelMapper modelMapper;
 
+    @Autowired
+    ProductFilterService productFilterService;
+
     @Override
     public List<ProductResponseDTO> getAllProducts() {
         return productRepository.findAll().stream()
@@ -32,6 +40,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Cacheable(value = "products", key = "#id")
     public ProductResponseDTO getProductById(String id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException("Product with ID " + id + " not found"));
@@ -40,6 +49,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @CacheEvict(value = {"filteredProducts"}, allEntries = true)
     public ProductResponseDTO addProduct(ProductCreationRequestDTO productRequestDTO) {
 
         Product product = modelMapper.map(productRequestDTO, Product.class);
@@ -48,6 +58,8 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @CachePut(value = "products", key = "#id")
+    @CacheEvict(value = "filteredProducts", allEntries = true)
     public ProductResponseDTO updateProduct(String id, ProductUpdationRequestDTO productRequestDTO) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException("Product with ID " + id + " not found"));
@@ -81,19 +93,18 @@ public class ProductServiceImpl implements ProductService {
         List<Product> filteredProducts;
 
         if(category == null) {
-            filteredProducts = productRepository.findByPriceBetween(minPrice, maxPrice);
+            return productFilterService.getProductsByPriceFilter(minPrice, maxPrice, productRepository, modelMapper);
         }
         else {
-            filteredProducts = productRepository.findByCategoryAndPriceBetween(category.toString(), minPrice, maxPrice);
+            return productFilterService.getProductsByAllFilters(category, minPrice, maxPrice, productRepository, modelMapper);
         }
-
-        return filteredProducts.stream()
-                .map(product -> modelMapper.map(product, ProductResponseDTO.class))
-                .collect(Collectors.toList());
-
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "filteredProducts", allEntries = true),
+            @CacheEvict(value = "products", key = "#id")
+    })
     public void deleteProduct(String id) {
         productRepository.deleteById(id);
     }
